@@ -1,3 +1,17 @@
+# Project Prometheus S3 Gateway
+
+## Local Testing
+
+Create a `settings` file. See [settings.example](/settings.example) for formatting and example values.  
+Do not commit the settings file to source control.  
+To allow proper routing for SPAs, add the sub-folder for the application to the file [s3_server.conf.template](/common/etc/nginx/templates/gateway/s3_server.conf.template).
+
+To run the gateway on [http://localhost:8080](http://localhost:8080):  
+`docker build --file Dockerfile.oss -t pro/s3-gateway:latest .`  
+`docker run --env-file ./settings -p 8080:80 pro/s3-gateway:latest`
+
+---  
+
 [![CI](https://github.com/nginxinc/nginx-s3-gateway/actions/workflows/main.yml/badge.svg)](https://github.com/nginxinc/nginx-s3-gateway/actions/workflows/main.yml) 
 [![Community Support](https://badgen.net/badge/support/community/cyan?icon=awesome)](https://github.com/nginxinc/nginx-s3-gateway/discussions)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
