@@ -31,14 +31,6 @@ jobs:
         run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
         id: extract_branch
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install packages
-        run: npm ci
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -67,9 +59,6 @@ jobs:
           printf "S3_BUCKET_NAME=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
           cat infrastructure/var.tfvars
 
-      - name: Build project
-        run: npm run build-dev
-
       - name: Generate ECS Task Definition
         id: apply-partial
         run: terraform apply -auto-approve -target=template_dir.task_definition -var-file "var.tfvars"
@@ -92,3 +81,11 @@ jobs:
           task-definition: ./infrastructure/rendered/task-definition.json
           container-name: s3gw-prod-ecs-svc-name
           image: ${{ steps.build-image.outputs.image }}
+
+      - name: debug artifacts
+        id: debug-artifacts
+        run: |
+          echo "task definition"
+          cat ./infrastructure/rendered/task-definition.json
+          echo "task definition"
+          cat ./infrastructure/var.tfvars
