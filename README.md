@@ -12,12 +12,11 @@ To run the gateway on [http://localhost:8080](http://localhost:8080):
 
 ---  
 
-[![CI](https://github.com/nginxinc/nginx-s3-gateway/actions/workflows/main.yml/badge.svg)](https://github.com/nginxinc/nginx-s3-gateway/actions/workflows/main.yml) 
-[![Community Support](https://badgen.net/badge/support/community/cyan?icon=awesome)](https://github.com/nginxinc/nginx-s3-gateway/discussions)
+[![CI](https://github.com/GigaTech-net/pp-s3-gateway/actions/workflows/main.yml/badge.svg)](https://github.com/GigaTech-net/pp-s3-gateway/actions/workflows/main.yml)
+[![Community Support](https://badgen.net/badge/support/gigatech/blue?icon=jira)](https://gigatech-net.atlassian.net/jira/software/c/projects/PRO/boards/3/backlog)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Docker Pulls](https://img.shields.io/docker/pulls/nginxinc/nginx-s3-gateway?style=flat)](https://hub.docker.com/repository/docker/nginxinc/nginx-s3-gateway/general)
 
-# NGINX S3 Gateway
+## NGINX S3 Gateway
 
 ## Introduction
 
