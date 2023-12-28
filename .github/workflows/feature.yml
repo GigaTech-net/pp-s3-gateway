@@ -1,0 +1,94 @@
+---
+name: feature build
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+      - '!master'
+      - '!development'
+      - '!Development'
+      - '!test'
+    paths-ignore:
+      - '.gitignore'
+      - '.browserslistrc'
+      - '.dockerignore'
+      - '**/development*.yml'
+      - '**/test*.yml'
+      - '**/main*.yml'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    name: build app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.6
+          terraform_wrapper: false # Necessary to access output
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ./infrastructure
+
+      - name: Prepare environment
+        run: |
+          cat settings-ci.txt \
+          | sed "s/AWS_REGION/region/g" \
+          | sed "s/AWS_EXECUTION_ROLE_ARN/execution_role_arn/g" \
+          | sed "s/AWS_TASK_ROLE_ARN/task_role_arn/g" \
+          | sed "s/AWS_ECS_SERVICE_NAME/ecs_service_name/g" \
+          | sed "s/AWS_TASK_DEFINITION_NAME/task_definition_name/g" \
+          | sed "s/AWS_FAMILY/family/g" \
+          | sed "s/AWS_CONTAINER_NAME/container_name/g" \
+          | sed "s/AWS_ENV/env/g" \
+          | sed "s/IS_PRODUCTION/is_production/g" \
+          > infrastructure/var.tfvars
+          printf "\n" >> infrastructure/var.tfvars
+          printf "S3_BUCKET_NAME=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
+          cat infrastructure/var.tfvars
+
+      - name: Build project
+        run: npm run build-dev
+
+      - name: Generate ECS Task Definition
+        id: apply-partial
+        run: terraform apply -auto-approve -target=template_dir.task_definition -var-file "var.tfvars"
+        working-directory: ./infrastructure
+
+      - name: Build image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ secrets.RANDD_AWS_ACCOUNT }}.dkr.ecr.${{ secrets.RANDD_ECR_REGION }}.amazonaws.com
+          ECR_REPOSITORY: s3gw
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build --build-arg ENV=prod --build-arg --file Dockerfile.oss -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        working-directory: .
+
+      - name: Fill in the new image ID in the Amazon ECS task definition ✒
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ./infrastructure/rendered/task-definition.json
+          container-name: s3gw-prod-ecs-svc-name
+          image: ${{ steps.build-image.outputs.image }}
