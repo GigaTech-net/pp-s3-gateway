@@ -1,0 +1,45 @@
+{
+  "family": "${family}",
+  "requiresCompatibilities": ["FARGATE"],
+  "executionRoleArn": "${execution_role_arn}",
+  "taskRoleArn": "${task_role_arn}",
+  "networkMode": "awsvpc",
+  "cpu": "${cpu}",
+  "memory": "${memory}",
+  "containerDefinitions": [
+    {
+      "name": "${container_name}",
+      "image": "${docker_image_url}",
+      "essential": true,
+      "environment": [
+        {
+          "name": "app_name",
+          "value": "${task_definition_name}"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "${region}"
+        },
+        {
+          "name": "AWS_ENV",
+          "value": "${env}"
+        }
+      ],
+      "portMappings": [
+        {
+          "hostPort": ${docker_container_port},
+          "protocol": "tcp",
+          "containerPort": ${docker_container_port}
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${ecs_service_name}-LogGroup",
+          "awslogs-region": "${region}",
+          "awslogs-stream-prefix": "${ecs_service_name}-LogGroup-stream"
+        }
+      }
+    }
+  ]
+}
