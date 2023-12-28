@@ -1,3 +1,11 @@
 # This file is intentional left as blank.
 # Use this file to add additional configuration to the "server"
 # block with default.conf.template
+
+if ($uri_path ~* ^/gtehr/[^/]+/$) {
+  set $uri_path "/gtehr/";
+}
+
+if ($uri_path ~* ^/gtehr-dev/[^/]+/$) {
+  set $uri_path "/gtehr-dev/";
+}

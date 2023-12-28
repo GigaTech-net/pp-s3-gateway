@@ -347,3 +347,5 @@ s3-requests.http
 httpRequests/
 
 .bin/
+
+settings
