@@ -54,9 +54,9 @@ jobs:
           | sed "s/AWS_CONTAINER_NAME/container_name/g" \
           | sed "s/AWS_ENV/env/g" \
           | sed "s/IS_PRODUCTION/is_production/g" \
-          | sed "s/S3_SERVER/s3_server/g" \
           | sed "s/S3_SERVER_PORT/s3_server_port/g" \
           | sed "s/S3_SERVER_PROTO/s3_server_proto/g" \
+          | sed "s/S3_SERVER/s3_server/g" \
           | sed "s/S3_STYLE/s3_style/g" \
           | sed "s/DEBUG/debug/g" \
           | sed "s/AWS_SIGS_VERSION/aws_sigs_version/g" \
@@ -67,6 +67,9 @@ jobs:
           > infrastructure/var.tfvars
           printf "\n" >> infrastructure/var.tfvars
           printf "S3_BUCKET_NAME=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
+
+      - name: debug tfvars
+        run: |
           cat infrastructure/var.tfvars
 
       - name: Generate ECS Task Definition
