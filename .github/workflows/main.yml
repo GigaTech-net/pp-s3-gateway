@@ -91,6 +91,10 @@ jobs:
         run: terraform apply -auto-approve -target=template_dir.task_definition -var-file "var.tfvars"
         working-directory: ./infrastructure
 
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build image
         id: build-image
         env:
