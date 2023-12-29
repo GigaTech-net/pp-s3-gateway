@@ -67,7 +67,7 @@ jobs:
           | sed "s/DIRECTORY_LISTING_PATH_PREFIX/directory_listing_path_prefix/g" \
           > infrastructure/var.tfvars
           printf "\n" >> infrastructure/var.tfvars
-          printf "S3_BUCKET_NAME=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
+          printf "s3_bucket_name=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
 
       - name: debug tfvars
         run: |
