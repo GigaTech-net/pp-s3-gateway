@@ -177,3 +177,21 @@ variable "directory_listing_path_prefix" { # tflint-ignore: all
     error_message = "The directory_listing_path_prefix must not be zero length."
   }
 }
+
+variable "aws_access_key_id" { # tflint-ignore: all
+  description = "The aws_access_key_id for accessing S3 from NGINX"
+  type        = string
+  validation {
+    condition     = length(var.aws_access_key_id) >= 0
+    error_message = "The aws_access_key_id must not be zero length."
+  }
+}
+
+variable "aws_secret_access_key" { # tflint-ignore: all
+  description = "The aws_secret_access_key for accessing S3 from NGINX"
+  type        = string
+  validation {
+    condition     = length(var.aws_secret_access_key) >= 0
+    error_message = "The aws_secret_access_key must not be zero length."
+  }
+}

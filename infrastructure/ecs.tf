@@ -11,6 +11,8 @@ resource "template_dir" "task_definition" {
     family                              = var.family
     container_name                      = var.container_name
     env                                 = var.env
+    aws_access_key_id                   = var.aws_access_key_id
+    aws_secret_access_key               = var.aws_secret_access_key
     s3_bucket_name                      = var.s3_bucket_name
     s3_region                           = var.s3_region
     s3_server                           = var.s3_server

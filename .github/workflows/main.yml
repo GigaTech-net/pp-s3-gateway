@@ -85,6 +85,8 @@ jobs:
           > infrastructure/var.tfvars
           printf "\n" >> infrastructure/var.tfvars
           printf "s3_bucket_name=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
+          printf "aws_access_key_id=\"%s\"\n" "${{secrets.NGINX_S3_ACCESS_KEY}}" >> infrastructure/var.tfvars
+          printf "aws_secret_access_key=\"%s\"\n" "${{secrets.NGINX_S3_SECRET_KEY}}" >> infrastructure/var.tfvars
 
       - name: Generate ECS Task Definition
         id: apply-partial
