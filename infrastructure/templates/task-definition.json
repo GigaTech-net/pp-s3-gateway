@@ -83,7 +83,7 @@
       ],
       "portMappings": [
         {
-          "hostPort": ${docker_container_port},
+          "hostPort": 8080,
           "protocol": "tcp",
           "containerPort": ${docker_container_port}
         }
