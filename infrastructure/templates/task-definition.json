@@ -23,6 +23,54 @@
         {
           "name": "AWS_ENV",
           "value": "${env}"
+        },
+        {
+          "name": "S3_SERVER",
+          "value": "${s3_server}"
+        },
+        {
+          "name": "S3_SERVER_PORT",
+          "value": "${s3_server_port}"
+        },
+        {
+          "name": "S3_SERVER_PROTO",
+          "value": "${s3_server_proto}"
+        },
+        {
+          "name": "S3_REGION",
+          "value": "${region}"
+        },
+        {
+          "name": "S3_STYLE",
+          "value": "${s3_style}"
+        },
+        {
+          "name": "DEBUG",
+          "value": "${debug}"
+        },
+        {
+          "name": "AWS_SIGS_VERSION",
+          "value": "${aws_sigs_version}"
+        },
+        {
+          "name": "AWS_SIGS_VERSION",
+          "value": "${aws_sigs_version}"
+        },
+        {
+          "name": "ALLOW_DIRECTORY_LIST",
+          "value": "${allow_directory_list}"
+        },
+        {
+          "name": "PROVIDE_INDEX_PAGE",
+          "value": "${provide_index_page}"
+        },
+        {
+          "name": "APPEND_SLASH_FOR_POSSIBLE_DIRECTORY",
+          "value": "${append_slash_for_possible_directory}"
+        },
+        {
+          "name": "DIRECTORY_LISTING_PATH_PREFIX",
+          "value": "${directory_listing_path_prefix}"
         }
       ],
       "portMappings": [

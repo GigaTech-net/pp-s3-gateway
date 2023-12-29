@@ -69,3 +69,93 @@ variable "env" { # tflint-ignore: all
     error_message = "The env must not be zero length."
   }
 }
+
+variable "s3_server" { # tflint-ignore: all
+  description = "The server for s3"
+  type        = string
+  validation {
+    condition     = length(var.s3_server) > 0
+    error_message = "The s3_server must not be zero length."
+  }
+}
+
+variable "s3_server_port" { # tflint-ignore: all
+  description = "The server port for s3"
+  type        = string
+  validation {
+    condition     = length(var.s3_server_port) > 0
+    error_message = "The s3_server_port must not be zero length."
+  }
+}
+
+variable "s3_server_proto" { # tflint-ignore: all
+  description = "The server protocol for s3"
+  type        = string
+  validation {
+    condition     = length(var.s3_server_proto) > 0
+    error_message = "The s3_server_proto must not be zero length."
+  }
+}
+
+variable "s3_style" { # tflint-ignore: all
+  description = "The style for s3"
+  type        = string
+  validation {
+    condition     = length(var.s3_style) > 0
+    error_message = "The s3_style must not be zero length."
+  }
+}
+
+variable "debug" { # tflint-ignore: all
+  description = "true to turn debug on, false otherwise"
+  type        = string
+  validation {
+    condition     = length(var.debug) > 0
+    error_message = "The debug must not be zero length."
+  }
+}
+
+variable "aws_sigs_version" { # tflint-ignore: all
+  description = "AWS sig version"
+  type        = string
+  validation {
+    condition     = length(var.aws_sigs_version) > 0
+    error_message = "The aws_sigs_version must not be zero length."
+  }
+}
+
+variable "allow_directory_list" { # tflint-ignore: all
+  description = "true to allow directory list, false otherwise"
+  type        = string
+  validation {
+    condition     = length(var.deallow_directory_listbug) > 0
+    error_message = "The allow_directory_list must not be zero length."
+  }
+}
+
+variable "provide_index_page" { # tflint-ignore: all
+  description = "true to provide index page, false otherwise"
+  type        = string
+  validation {
+    condition     = length(var.provide_index_page) > 0
+    error_message = "The provide_index_page must not be zero length."
+  }
+}
+
+variable "append_slash_for_possible_directory" { # tflint-ignore: all
+  description = "true to append slash, false otherwise"
+  type        = string
+  validation {
+    condition     = length(var.append_slash_for_possible_directory) > 0
+    error_message = "The append_slash_for_possible_directory must not be zero length."
+  }
+}
+
+variable "directory_listing_path_prefix" { # tflint-ignore: all
+  description = "The path prefix for directory listing"
+  type        = string
+  validation {
+    condition     = length(var.directory_listing_path_prefix) > 0
+    error_message = "The directory_listing_path_prefix must not be zero length."
+  }
+}
