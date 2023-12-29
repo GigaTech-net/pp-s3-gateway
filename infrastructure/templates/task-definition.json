@@ -57,10 +57,6 @@
           "value": "${aws_sigs_version}"
         },
         {
-          "name": "AWS_SIGS_VERSION",
-          "value": "${aws_sigs_version}"
-        },
-        {
           "name": "ALLOW_DIRECTORY_LIST",
           "value": "${allow_directory_list}"
         },

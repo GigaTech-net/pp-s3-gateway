@@ -1,5 +1,5 @@
 ---
-name: feature build
+name: development & feature build
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
       - '**'
       - '!main'
       - '!master'
-      - '!development'
       - '!Development'
       - '!test'
     paths-ignore:
