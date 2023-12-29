@@ -68,10 +68,6 @@ jobs:
           printf "\n" >> infrastructure/var.tfvars
           printf "s3_bucket_name=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
 
-      - name: debug tfvars
-        run: |
-          cat infrastructure/var.tfvars
-
       - name: Generate ECS Task Definition
         id: apply-partial
         run: terraform apply -auto-approve -target=template_dir.task_definition -var-file "var.tfvars"
