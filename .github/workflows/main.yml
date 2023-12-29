@@ -138,6 +138,6 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: g3sw-prod-ecs-svc-name
+          service: s3gw-prod-ecs-svc-name
           cluster: prometheus-cluster-prod
           wait-for-service-stability: false
