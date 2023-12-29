@@ -1,18 +1,21 @@
 ---
-name: main build and deploy
+name: development & feature build
 
 on:
   push:
     branches:
-      - main
-      - master
+      - '**'
+      - '!main'
+      - '!master'
+      - '!Development'
+      - '!test'
     paths-ignore:
       - '.gitignore'
       - '.browserslistrc'
       - '.dockerignore'
-      - '**/feature*.yml'
       - '**/development*.yml'
       - '**/test*.yml'
+      - '**/main*.yml'
 
 jobs:
   run:
@@ -21,28 +24,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Lint Code Base
-        uses: super-linter/super-linter/slim@v5
-        env:
-          VALIDATE_ALL_CODEBASE: true
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LINTER_RULES_PATH: .github/linters
-          VALIDATE_MARKDOWN: true
-          VALIDATE_YAML: true
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_IDENTITY_REGION }}
-          role-to-assume: ${{ secrets.AWS_RANDD_CICD_ROLE }}
-          role-external-id: ${{ secrets.AWS_RANDD_CICD_EXTERNAL_ID }}
-          role-duration-seconds: 900
-          role-session-name: g3sw-prod-container-update
-          role-skip-session-tagging: true
 
       - name: Extract branch name
         shell: bash
@@ -100,9 +81,6 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build --build-arg ENV=prod --file Dockerfile.oss -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.extract_branch.outputs.branch }}
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.extract_branch.outputs.branch }}
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
         working-directory: .
 
@@ -114,21 +92,10 @@ jobs:
           container-name: s3gw-prod-ecs-svc-name
           image: ${{ steps.build-image.outputs.image }}
 
-      - name: debug some stuff
+      - name: debug artifacts
+        id: debug-artifacts
         run: |
-          echo "Image:"
-          echo ${{ steps.build-image.outputs.image }}
-          echo ""
-          echo "Task Definition:"
-          cat ${{ steps.task-def.outputs.task-definition }}
-          echo ""
-          echo "TF Vars:"
-          cat infrastructure/var.tfvars
-
-      - name: Deploy Amazon ECS task definition 🚀
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: g3sw-prod-ecs-svc-name
-          cluster: prometheus-cluster-prod
-          wait-for-service-stability: false
+          echo "task definition"
+          cat ./infrastructure/rendered/task-definition.json
+          echo "task definition"
+          cat ./infrastructure/var.tfvars

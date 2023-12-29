@@ -1,0 +1,93 @@
+{
+  "family": "${family}",
+  "requiresCompatibilities": ["FARGATE"],
+  "executionRoleArn": "${execution_role_arn}",
+  "taskRoleArn": "${task_role_arn}",
+  "networkMode": "awsvpc",
+  "cpu": "${cpu}",
+  "memory": "${memory}",
+  "containerDefinitions": [
+    {
+      "name": "${container_name}",
+      "image": "${docker_image_url}",
+      "essential": true,
+      "environment": [
+        {
+          "name": "app_name",
+          "value": "${task_definition_name}"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "${region}"
+        },
+        {
+          "name": "AWS_ENV",
+          "value": "${env}"
+        },
+        {
+          "name": "S3_BUCKET_NAME",
+          "value": "${s3_bucket_name}"
+        },
+        {
+          "name": "S3_SERVER",
+          "value": "${s3_server}"
+        },
+        {
+          "name": "S3_SERVER_PORT",
+          "value": "${s3_server_port}"
+        },
+        {
+          "name": "S3_SERVER_PROTO",
+          "value": "${s3_server_proto}"
+        },
+        {
+          "name": "S3_REGION",
+          "value": "${s3_region}"
+        },
+        {
+          "name": "S3_STYLE",
+          "value": "${s3_style}"
+        },
+        {
+          "name": "DEBUG",
+          "value": "${debug}"
+        },
+        {
+          "name": "AWS_SIGS_VERSION",
+          "value": "${aws_sigs_version}"
+        },
+        {
+          "name": "ALLOW_DIRECTORY_LIST",
+          "value": "${allow_directory_list}"
+        },
+        {
+          "name": "PROVIDE_INDEX_PAGE",
+          "value": "${provide_index_page}"
+        },
+        {
+          "name": "APPEND_SLASH_FOR_POSSIBLE_DIRECTORY",
+          "value": "${append_slash_for_possible_directory}"
+        },
+        {
+          "name": "DIRECTORY_LISTING_PATH_PREFIX",
+          "value": "${directory_listing_path_prefix}"
+        }
+      ],
+      "portMappings": [
+        {
+          "hostPort": ${docker_container_port},
+          "protocol": "tcp",
+          "containerPort": ${docker_container_port}
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${ecs_service_name}-LogGroup",
+          "awslogs-region": "${region}",
+          "awslogs-stream-prefix": "${ecs_service_name}-LogGroup-stream"
+        }
+      }
+    }
+  ]
+}
