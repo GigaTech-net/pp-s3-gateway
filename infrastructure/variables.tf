@@ -128,7 +128,7 @@ variable "allow_directory_list" { # tflint-ignore: all
   description = "true to allow directory list, false otherwise"
   type        = string
   validation {
-    condition     = length(var.deallow_directory_listbug) > 0
+    condition     = length(var.allow_directory_list) > 0
     error_message = "The allow_directory_list must not be zero length."
   }
 }
