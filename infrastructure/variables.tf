@@ -159,3 +159,12 @@ variable "directory_listing_path_prefix" { # tflint-ignore: all
     error_message = "The directory_listing_path_prefix must not be zero length."
   }
 }
+
+variable "s3_bucket_name" { # tflint-ignore: all
+  description = "The name of the bucket"
+  type        = string
+  validation {
+    condition     = length(var.s3_bucket_name) > 0
+    error_message = "The s3_bucket_name must not be zero length."
+  }
+}

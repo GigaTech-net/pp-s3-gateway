@@ -25,6 +25,10 @@
           "value": "${env}"
         },
         {
+          "name": "S3_BUCKET_NAME",
+          "value": "${s3_bucket_name}"
+        },
+        {
           "name": "S3_SERVER",
           "value": "${s3_server}"
         },

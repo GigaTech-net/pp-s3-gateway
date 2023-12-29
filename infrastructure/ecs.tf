@@ -11,6 +11,7 @@ resource "template_dir" "task_definition" {
     family                              = var.family
     container_name                      = var.container_name
     env                                 = var.env
+    s3_bucket_name                      = var.s3_bucket_name
     s3_server                           = var.s3_server
     s3_server_port                      = var.s3_server_port
     s3_server_proto                     = var.s3_server_proto
