@@ -42,7 +42,7 @@
         },
         {
           "name": "S3_REGION",
-          "value": "${region}"
+          "value": "${s3_region}"
         },
         {
           "name": "S3_STYLE",

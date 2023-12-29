@@ -79,6 +79,15 @@ variable "s3_bucket_name" { # tflint-ignore: all
   }
 }
 
+variable "s3_region" { # tflint-ignore: all
+  description = "The region of the bucket"
+  type        = string
+  validation {
+    condition     = length(var.s3_region) > 0
+    error_message = "The s3_region must not be zero length."
+  }
+}
+
 variable "s3_server" { # tflint-ignore: all
   description = "The server for s3"
   type        = string
