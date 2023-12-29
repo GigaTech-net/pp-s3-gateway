@@ -72,6 +72,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build --build-arg ENV=prod --file Dockerfile.oss -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
         working-directory: .
 
       - name: Fill in the new image ID in the Amazon ECS task definition ✒
