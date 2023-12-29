@@ -1,0 +1,134 @@
+---
+name: main build and deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - '.gitignore'
+      - '.browserslistrc'
+      - '.dockerignore'
+      - '**/feature*.yml'
+      - '**/development*.yml'
+      - '**/test*.yml'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    name: build app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint Code Base
+        uses: super-linter/super-linter/slim@v5
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINTER_RULES_PATH: .github/linters
+          VALIDATE_MARKDOWN: true
+          VALIDATE_YAML: true
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_IDENTITY_REGION }}
+          role-to-assume: ${{ secrets.AWS_RANDD_CICD_ROLE }}
+          role-external-id: ${{ secrets.AWS_RANDD_CICD_EXTERNAL_ID }}
+          role-duration-seconds: 900
+          role-session-name: g3sw-prod-container-update
+          role-skip-session-tagging: true
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.6
+          terraform_wrapper: false # Necessary to access output
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ./infrastructure
+
+      - name: Prepare environment
+        run: |
+          cat settings-ci.txt \
+          | sed "s/AWS_REGION/region/g" \
+          | sed "s/AWS_EXECUTION_ROLE_ARN/execution_role_arn/g" \
+          | sed "s/AWS_TASK_ROLE_ARN/task_role_arn/g" \
+          | sed "s/AWS_ECS_SERVICE_NAME/ecs_service_name/g" \
+          | sed "s/AWS_TASK_DEFINITION_NAME/task_definition_name/g" \
+          | sed "s/AWS_FAMILY/family/g" \
+          | sed "s/AWS_CONTAINER_NAME/container_name/g" \
+          | sed "s/AWS_ENV/env/g" \
+          | sed "s/IS_PRODUCTION/is_production/g" \
+          | sed "s/S3_REGION/s3_region/g" \
+          | sed "s/S3_SERVER_PORT/s3_server_port/g" \
+          | sed "s/S3_SERVER_PROTO/s3_server_proto/g" \
+          | sed "s/S3_SERVER/s3_server/g" \
+          | sed "s/S3_STYLE/s3_style/g" \
+          | sed "s/DEBUG/debug/g" \
+          | sed "s/AWS_SIGS_VERSION/aws_sigs_version/g" \
+          | sed "s/ALLOW_DIRECTORY_LIST/allow_directory_list/g" \
+          | sed "s/PROVIDE_INDEX_PAGE/provide_index_page/g" \
+          | sed "s/APPEND_SLASH_FOR_POSSIBLE_DIRECTORY/append_slash_for_possible_directory/g" \
+          | sed "s/DIRECTORY_LISTING_PATH_PREFIX/directory_listing_path_prefix/g" \
+          > infrastructure/var.tfvars
+          printf "\n" >> infrastructure/var.tfvars
+          printf "s3_bucket_name=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
+
+      - name: Generate ECS Task Definition
+        id: apply-partial
+        run: terraform apply -auto-approve -target=template_dir.task_definition -var-file "var.tfvars"
+        working-directory: ./infrastructure
+
+      - name: Build image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ secrets.RANDD_AWS_ACCOUNT }}.dkr.ecr.${{ secrets.RANDD_ECR_REGION }}.amazonaws.com
+          ECR_REPOSITORY: s3gw
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build --build-arg ENV=prod --file Dockerfile.oss -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.extract_branch.outputs.branch }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.extract_branch.outputs.branch }}
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        working-directory: .
+
+      - name: Fill in the new image ID in the Amazon ECS task definition ✒
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ./infrastructure/rendered/task-definition.json
+          container-name: s3gw-prod-ecs-svc-name
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: debug some stuff
+        run: |
+          echo "Image:"
+          echo ${{ steps.build-image.outputs.image }}
+          echo ""
+          echo "Task Definition:"
+          cat ${{ steps.task-def.outputs.task-definition }}
+          echo ""
+          echo "TF Vars:"
+          cat infrastructure/var.tfvars
+
+      - name: Deploy Amazon ECS task definition 🚀
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: g3sw-prod-ecs-svc-name
+          cluster: prometheus-cluster-prod
+          wait-for-service-stability: false
