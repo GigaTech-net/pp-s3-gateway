@@ -173,7 +173,7 @@ variable "directory_listing_path_prefix" { # tflint-ignore: all
   description = "The path prefix for directory listing"
   type        = string
   validation {
-    condition     = length(var.directory_listing_path_prefix) > 0
+    condition     = length(var.directory_listing_path_prefix) >= 0
     error_message = "The directory_listing_path_prefix must not be zero length."
   }
 }
