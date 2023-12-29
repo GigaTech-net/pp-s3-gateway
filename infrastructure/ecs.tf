@@ -28,7 +28,7 @@ resource "template_dir" "task_definition" {
     docker_image_url                    = ""
     cpu                                 = 512
     memory                              = 1024
-    docker_container_port               = 8080
+    docker_container_port               = 80
   }
 }
 
