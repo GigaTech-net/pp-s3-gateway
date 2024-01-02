@@ -2,8 +2,8 @@
 
 ## Commercial Support
 
-The NGINX S3 Gateway project itself does *not* have a commercial support 
-offering. However, NGINX and njs, the technologies the gateway is built with 
+The NGINX S3 Gateway project itself does *not* have a commercial support
+offering. However, NGINX and njs, the technologies the gateway is built with
 does have commercial support. This means that the specific configuration and
 Javascript files that make up this solution does not have support, but the
 underlying technologies that run the gateway do have support.
