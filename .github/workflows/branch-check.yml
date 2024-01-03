@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: Check Source Branch
       run: |
-        if [[ "${{ github.head_ref }}" != "development" ]]; then
+        if [[ "${{ github.base_ref }}" == "master" && "${{ github.head_ref }}" != "development" ]]; then
           echo "Error: PRs to 'main' must come from 'development' branch."
           exit 1
         fi
