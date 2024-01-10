@@ -9,3 +9,19 @@ if ($uri_path ~* ^/gtehr/[^/]+/$) {
 if ($uri_path ~* ^/gtehr-dev/[^/]+/$) {
   set $uri_path "/gtehr-dev/";
 }
+
+if ($uri_path ~* ^/status/[^/]+/$) {
+  set $uri_path "/status/";
+}
+
+if ($uri_path ~* ^/status-dev/[^/]+/$) {
+  set $uri_path "/status-dev/";
+}
+
+if ($uri_path ~* ^/launch/[^/]+/$) {
+  set $uri_path "/launch/";
+}
+
+if ($uri_path ~* ^/launch-dev/[^/]+/$) {
+  set $uri_path "/launch-dev/";
+}
