@@ -25,3 +25,11 @@ if ($uri_path ~* ^/launch/[^/]+/$) {
 if ($uri_path ~* ^/launch-dev/[^/]+/$) {
   set $uri_path "/launch-dev/";
 }
+
+if ($uri_path ~* ^/smart/recengine/[^/]+/$) {
+  set $uri_path "/smart/recengine/";
+}
+
+if ($uri_path ~* ^/smart/recengine-dev/[^/]+/$) {
+  set $uri_path "/smart/recengine-dev/";
+}
