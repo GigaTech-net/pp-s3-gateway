@@ -178,6 +178,15 @@ variable "directory_listing_path_prefix" { # tflint-ignore: all
   }
 }
 
+variable "cors_enabled" { # tflint-ignore: all
+  description = "true to enable cors, false otherwise"
+  type        = string
+  validation {
+    condition     = length(var.cors_enabled) >= 0
+    error_message = "The cors_enabled must not be zero length."
+  }
+}
+
 variable "aws_access_key_id" { # tflint-ignore: all
   description = "The aws_access_key_id for accessing S3 from NGINX"
   type        = string

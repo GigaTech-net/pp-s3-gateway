@@ -25,6 +25,7 @@ resource "template_dir" "task_definition" {
     provide_index_page                  = var.provide_index_page
     append_slash_for_possible_directory = var.append_slash_for_possible_directory
     directory_listing_path_prefix       = var.directory_listing_path_prefix
+    cors_enabled                        = var.cors_enabled
     docker_image_url                    = ""
     cpu                                 = 512
     memory                              = 1024

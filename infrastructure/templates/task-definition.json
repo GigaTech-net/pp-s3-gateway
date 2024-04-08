@@ -79,6 +79,10 @@
         {
           "name": "DIRECTORY_LISTING_PATH_PREFIX",
           "value": "${directory_listing_path_prefix}"
+        },
+        {
+          "name": "CORNS_ENABLED",
+          "value": "${cors_enabled}"
         }
       ],
       "portMappings": [
