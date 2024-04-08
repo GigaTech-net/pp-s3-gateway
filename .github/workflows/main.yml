@@ -82,6 +82,7 @@ jobs:
           | sed "s/PROVIDE_INDEX_PAGE/provide_index_page/g" \
           | sed "s/APPEND_SLASH_FOR_POSSIBLE_DIRECTORY/append_slash_for_possible_directory/g" \
           | sed "s/DIRECTORY_LISTING_PATH_PREFIX/directory_listing_path_prefix/g" \
+          | sed "s/CORS_ENABLED/cors_enabled/g" \
           > infrastructure/var.tfvars
           printf "\n" >> infrastructure/var.tfvars
           printf "s3_bucket_name=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
