@@ -74,6 +74,7 @@ server {
     location ~* ^(\/(?:[^/]+\/)*[^/]+)\/health\/?$ {
         include /etc/nginx/conf.d/gateway/js_fetch_trusted_certificate.conf;
         default_type text/json;
+        include /etc/nginx/conf.d/gateway/cors.conf;
         add_header X-Frame-Options "DENY";
         add_header Permissions-Policy "autoplay=(), encrypted-media=(), fullscreen=(), geolocation=(), microphone=(), midi=()";
         add_header X-Content-Type-Options "nosniff";
@@ -87,6 +88,7 @@ server {
 
     location /health {
         default_type text/json;
+        include /etc/nginx/conf.d/gateway/cors.conf;
         add_header X-Frame-Options "DENY";
         add_header Permissions-Policy "autoplay=(), encrypted-media=(), fullscreen=(), geolocation=(), microphone=(), midi=()";
         add_header X-Content-Type-Options "nosniff";
