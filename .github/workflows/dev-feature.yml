@@ -18,6 +18,9 @@ on:
       - '**/main*.yml'
 
 jobs:
+  call-trufflehog-scan:
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-trufflehog-scan.yaml@main
+
   run:
     runs-on: ubuntu-latest
     name: build app
