@@ -36,7 +36,7 @@ jobs:
   setup:
     name: Setup
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-setup.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-setup.yaml@PRO-507
 
   lint:
     name: Lint Code Base
@@ -44,7 +44,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-super-linter.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-super-linter.yaml@PRO-507
     with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
@@ -58,19 +58,19 @@ jobs:
     name: Secret Scan
     needs: [setup]
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-secret-scan.yaml@PRO-507
 
   spellcheck:
     name: Spellcheck codebase
     needs: [setup]
     permissions:
       contents: write
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-spellcheck.yaml@PRO-507
     with:
       filesToIgnore: 'package-lock.json,./.vscode,./.github'
 
   dependency-check:
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-dependency-check.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-dependency-check.yaml@PRO-507
     needs: [setup]
     permissions: read-all
     with:

@@ -1,0 +1,49 @@
+---
+name: Dependency Check
+
+on:
+  workflow_call:
+    inputs:
+      artifactName:
+        required: false
+        type: string
+        description: 'The artifact name to write to GH blob storage after this workflow completes'
+        default: 'vulnerability_rpt'
+      retentionDays:
+        required: false
+        type: number
+        description: 'The number of days to retain the artifact in GH blob storage after this workflow completes'
+        default: 1
+  
+permissions: read-all
+
+jobs:
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run dependency check
+        uses: dependency-check/Dependency-Check_Action@main
+        id: dependency-check
+        with:
+          project: ${{ github.repository }}
+          path: '.'
+          format: 'ALL'
+          out: 'reports'
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+            --prettyPrint
+
+      - name: Upload dependency check results as artifact
+        if: always()
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{ inputs.artifactName }}-${{ github.sha }}
+          path: ${{ github.workspace }}/reports
+          retention-days: ${{ inputs.retentionDays }}
