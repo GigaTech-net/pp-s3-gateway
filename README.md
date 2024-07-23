@@ -84,7 +84,7 @@ examples/                        contains additional `Dockerfile` examples that 
 jsdoc                            JSDoc configuration files
 oss/                             contains files used solely in NGINX OSS configurations
 plus/                            contains files used solely in NGINX Plus configurations
-test/                            contains automated tests for validang that the examples work
+test/                            contains automated tests for validating that the examples work
 Dockerfile.oss                   Dockerfile that configures NGINX OSS to act as a S3 gateway
 Dockerfile.plus                  Dockerfile that builds a NGINX Plus instance that is configured
                                  equivelently to NGINX OSS - instance is configured to act as a 
