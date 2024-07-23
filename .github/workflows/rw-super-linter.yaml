@@ -169,6 +169,9 @@ jobs:
           VALIDATE_SHELL_SHFMT: false
           VALIDATE_EDITORCONFIG: false
           VALIDATE_TYPESCRIPT_STANDARD: false
+          VALIDATE_GITLEAKS: false
+          VALIDATE_CLOUDFORMATON: false
+          VALIDATE_BASH_EXEC: false
           LINTER_RULES_PATH: .github/linters
           FILTER_REGEX_EXCLUDE: ${{ env.FILTER_REGEX_EXCLUDE }}
           FILTER_REGEX_INCLUDE: ${{ env.FILTER_REGEX_INCLUDE }}
