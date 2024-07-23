@@ -46,6 +46,7 @@ minio_user="AKIAIOSFODNN7EXAMPLE"
 minio_passwd="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 minio_name="${test_compose_project}_minio_1"
 minio_bucket="bucket-1"
+CI=${CI:="false"}
 
 is_windows="0"
 if [ -z "${OS}" ] && [ "${OS}" == "Windows_NT" ]; then
@@ -297,84 +298,140 @@ trap finish EXIT ERR SIGTERM SIGINT
 
 ### BUILD
 
-p "Building NGINX S3 gateway Docker image"
-if [ "${nginx_type}" = "plus" ]; then
-  if docker buildx > /dev/null 2>&1; then
-    p "Building using BuildKit"
-    export DOCKER_BUILDKIT=1
-    docker buildx build -f Dockerfile.buildkit.${nginx_type} \
-      --secret id=nginx-crt,src=plus/etc/ssl/nginx/nginx-repo.crt \
-      --secret id=nginx-key,src=plus/etc/ssl/nginx/nginx-repo.key \
-      --no-cache \
-      --tag nginx-s3-gateway --tag nginx-s3-gateway:${nginx_type} .
+if [ "$CI" = "true" ]; then
+    echo "Skipping docker image build due to CI=true"
+else
+  p "Building NGINX S3 gateway Docker image"
+  if [ "${nginx_type}" = "plus" ]; then
+    if docker buildx > /dev/null 2>&1; then
+      p "Building using BuildKit"
+      export DOCKER_BUILDKIT=1
+      docker buildx build -f Dockerfile.buildkit.${nginx_type} \
+        --secret id=nginx-crt,src=plus/etc/ssl/nginx/nginx-repo.crt \
+        --secret id=nginx-key,src=plus/etc/ssl/nginx/nginx-repo.key \
+        --no-cache \
+        --tag nginx-s3-gateway --tag nginx-s3-gateway:${nginx_type} .
+    else
+      docker build -f Dockerfile.${nginx_type} \
+        --tag nginx-s3-gateway --tag nginx-s3-gateway:${nginx_type} .
+    fi
   else
     docker build -f Dockerfile.${nginx_type} \
       --tag nginx-s3-gateway --tag nginx-s3-gateway:${nginx_type} .
   fi
-else
-  docker build -f Dockerfile.${nginx_type} \
-    --tag nginx-s3-gateway --tag nginx-s3-gateway:${nginx_type} .
-fi
 
-if [ ${njs_latest} -eq 1 ]; then
-  p "Layering in latest NJS build"
-  docker build -f Dockerfile.latest-njs \
-    --tag nginx-s3-gateway --tag nginx-s3-gateway:latest-njs-${nginx_type} .
-fi
+  unit_test_command="-t module -p '/etc/nginx'"
 
-if [ ${unprivileged} -eq 1 ]; then
-  p "Layering in unprivileged build"
-  docker build -f Dockerfile.unprivileged \
-    --tag nginx-s3-gateway --tag nginx-s3-gateway:unprivileged-${nginx_type} .
+  if [ ${njs_latest} -eq 1 ]; then
+    unit_test_command="-m -p '/etc/nginx'"
+    p "Layering in latest NJS build"
+    docker build -f Dockerfile.latest-njs \
+      --tag nginx-s3-gateway --tag nginx-s3-gateway:latest-njs-${nginx_type} .
+  fi
+
+  if [ ${unprivileged} -eq 1 ]; then
+    p "Layering in unprivileged build"
+    docker build -f Dockerfile.unprivileged \
+      --tag nginx-s3-gateway --tag nginx-s3-gateway:unprivileged-${nginx_type} .
+  fi
 fi
 
 ### UNIT TESTS
 
 runUnitTestWithOutSessionToken() {
   test_code="$1"
-
-  #MSYS_NO_PATHCONV=1 added to resolve automatic path conversion
-  # https://github.com/docker/for-win/issues/6754#issuecomment-629702199
-  MSYS_NO_PATHCONV=1 "${docker_cmd}" run  \
-    --rm                                  \
-    -v "$(pwd)/test/unit:/var/tmp"        \
-    --workdir /var/tmp                    \
-    -e "DEBUG=true"                       \
-    -e "S3_STYLE=virtual"                 \
-    -e "AWS_ACCESS_KEY_ID=unit_test"      \
-    -e "AWS_SECRET_ACCESS_KEY=unit_test"  \
-    -e "S3_BUCKET_NAME=unit_test"         \
-    -e "S3_SERVER=unit_test"              \
-    -e "S3_SERVER_PROTO=https"            \
-    -e "S3_SERVER_PORT=443"               \
-    -e "S3_REGION=test-1"                 \
-    -e "AWS_SIGS_VERSION=4"               \
-    --entrypoint /usr/bin/njs             \
-    nginx-s3-gateway -t module -p '/etc/nginx' /var/tmp/"${test_code}"
+  # Temporary hack while njs transitions to supporting -m in the cli tool
+  if [ ${njs_latest} -eq 1 ]
+    then
+      #MSYS_NO_PATHCONV=1 added to resolve automatic path conversion
+      # https://github.com/docker/for-win/issues/6754#issuecomment-629702199
+      MSYS_NO_PATHCONV=1 "${docker_cmd}" run  \
+        --rm                                  \
+        -v "$(pwd)/test/unit:/var/tmp"        \
+        --workdir /var/tmp                    \
+        -e "DEBUG=true"                       \
+        -e "S3_STYLE=virtual-v2"                 \
+        -e "S3_SERVICE=s3"                    \
+        -e "AWS_ACCESS_KEY_ID=unit_test"      \
+        -e "AWS_SECRET_ACCESS_KEY=unit_test"  \
+        -e "S3_BUCKET_NAME=unit_test"         \
+        -e "S3_SERVER=unit_test"              \
+        -e "S3_SERVER_PROTO=https"            \
+        -e "S3_SERVER_PORT=443"               \
+        -e "S3_REGION=test-1"                 \
+        -e "AWS_SIGS_VERSION=4"               \
+        --entrypoint /usr/bin/njs             \
+        nginx-s3-gateway -m -p '/etc/nginx' /var/tmp/"${test_code}"
+    else
+      #MSYS_NO_PATHCONV=1 added to resolve automatic path conversion
+      # https://github.com/docker/for-win/issues/6754#issuecomment-629702199
+      MSYS_NO_PATHCONV=1 "${docker_cmd}" run  \
+        --rm                                  \
+        -v "$(pwd)/test/unit:/var/tmp"        \
+        --workdir /var/tmp                    \
+        -e "DEBUG=true"                       \
+        -e "S3_STYLE=virtual-v2"                 \
+        -e "S3_SERVICE=s3"                    \
+        -e "AWS_ACCESS_KEY_ID=unit_test"      \
+        -e "AWS_SECRET_ACCESS_KEY=unit_test"  \
+        -e "S3_BUCKET_NAME=unit_test"         \
+        -e "S3_SERVER=unit_test"              \
+        -e "S3_SERVER_PROTO=https"            \
+        -e "S3_SERVER_PORT=443"               \
+        -e "S3_REGION=test-1"                 \
+        -e "AWS_SIGS_VERSION=4"               \
+        --entrypoint /usr/bin/njs             \
+        nginx-s3-gateway -t module -p '/etc/nginx' /var/tmp/"${test_code}"
+  fi
 }
 
 runUnitTestWithSessionToken() {
   test_code="$1"
-
-  #MSYS_NO_PATHCONV=1 added to resolve automatic path conversion
-  # https://github.com/docker/for-win/issues/6754#issuecomment-629702199
-  MSYS_NO_PATHCONV=1 "${docker_cmd}" run  \
-    --rm                                  \
-    -v "$(pwd)/test/unit:/var/tmp"        \
-    --workdir /var/tmp                    \
-    -e "DEBUG=true"                       \
-    -e "S3_STYLE=virtual"                 \
-    -e "AWS_ACCESS_KEY_ID=unit_test"      \
-    -e "AWS_SECRET_ACCESS_KEY=unit_test"  \
-    -e "AWS_SESSION_TOKEN=unit_test"      \
-    -e "S3_BUCKET_NAME=unit_test"         \
-    -e "S3_SERVER=unit_test"              \
-    -e "S3_SERVER_PROTO=https"            \
-    -e "S3_SERVER_PORT=443"               \
-    -e "S3_REGION=test-1"                 \
-    -e "AWS_SIGS_VERSION=4"               \
-    --entrypoint /usr/bin/njs             \
-    nginx-s3-gateway -t module -p '/etc/nginx' /var/tmp/"${test_code}"
+  # Temporary hack while njs transitions to supporting -m in the cli tool
+  if [ ${njs_latest} -eq 1 ]
+    then
+      #MSYS_NO_PATHCONV=1 added to resolve automatic path conversion
+      # https://github.com/docker/for-win/issues/6754#issuecomment-629702199
+      MSYS_NO_PATHCONV=1 "${docker_cmd}" run  \
+        --rm                                  \
+        -v "$(pwd)/test/unit:/var/tmp"        \
+        --workdir /var/tmp                    \
+        -e "DEBUG=true"                       \
+        -e "S3_STYLE=virtual-v2"                 \
+        -e "S3_SERVICE=s3"                    \
+        -e "AWS_ACCESS_KEY_ID=unit_test"      \
+        -e "AWS_SECRET_ACCESS_KEY=unit_test"  \
+        -e "AWS_SESSION_TOKEN=unit_test"      \
+        -e "S3_BUCKET_NAME=unit_test"         \
+        -e "S3_SERVER=unit_test"              \
+        -e "S3_SERVER_PROTO=https"            \
+        -e "S3_SERVER_PORT=443"               \
+        -e "S3_REGION=test-1"                 \
+        -e "AWS_SIGS_VERSION=4"               \
+        --entrypoint /usr/bin/njs             \
+        nginx-s3-gateway -m -p '/etc/nginx' /var/tmp/"${test_code}"
+    else
+      #MSYS_NO_PATHCONV=1 added to resolve automatic path conversion
+      # https://github.com/docker/for-win/issues/6754#issuecomment-629702199
+      MSYS_NO_PATHCONV=1 "${docker_cmd}" run  \
+        --rm                                  \
+        -v "$(pwd)/test/unit:/var/tmp"        \
+        --workdir /var/tmp                    \
+        -e "DEBUG=true"                       \
+        -e "S3_STYLE=virtual-v2"                 \
+        -e "S3_SERVICE=s3"                    \
+        -e "AWS_ACCESS_KEY_ID=unit_test"      \
+        -e "AWS_SECRET_ACCESS_KEY=unit_test"  \
+        -e "AWS_SESSION_TOKEN=unit_test"      \
+        -e "S3_BUCKET_NAME=unit_test"         \
+        -e "S3_SERVER=unit_test"              \
+        -e "S3_SERVER_PROTO=https"            \
+        -e "S3_SERVER_PORT=443"               \
+        -e "S3_REGION=test-1"                 \
+        -e "AWS_SIGS_VERSION=4"               \
+        --entrypoint /usr/bin/njs             \
+        nginx-s3-gateway -t module -p '/etc/nginx' /var/tmp/"${test_code}"
+  fi
 }
 
 p "Running unit tests for utils"
