@@ -104,8 +104,7 @@ test.sh                          test launcher
 
 ## Development
 
-Refer to the [Development Guide](docs/development.md) for more information about
-extending or testing the gateway.
+Refer to the [Development Guide](docs/development.md) for more information about extending or testing the gateway.
 
 ## License
 
