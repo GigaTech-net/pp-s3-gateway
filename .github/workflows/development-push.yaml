@@ -156,7 +156,7 @@ jobs:
             else
               ECR_REGISTRY="${{ secrets.RANDD_AWS_ACCOUNT }}.dkr.ecr.${{ secrets.RANDD_ECR_REGION }}.amazonaws.com"
             fi 
-            docker build -t "$ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}":"$IMAGE_TAG" .
+            docker build --build-arg ENV=prod --file Dockerfile.oss -t $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG .
             {
               echo "image=$ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG";
               echo "IMAGE_TAG=$IMAGE_TAG";

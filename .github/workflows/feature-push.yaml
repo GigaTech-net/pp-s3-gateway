@@ -152,14 +152,15 @@ jobs:
               ECR_REGISTRY="BOT-ACCOUNT.dkr.ecr.BOT-REGION.amazonaws.com"
             else
               ECR_REGISTRY="${{ secrets.RANDD_AWS_ACCOUNT }}.dkr.ecr.${{ secrets.RANDD_ECR_REGION }}.amazonaws.com"
-            fi 
-            docker build -t "$ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}":"$IMAGE_TAG" .
+            fi
+            docker build --build-arg ENV=prod --file Dockerfile.oss -t $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG .
             {
               echo "image=$ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG";
               echo "IMAGE_TAG=$IMAGE_TAG";
               echo "ECR_REGISTRY=$ECR_REGISTRY";
             } >> $GITHUB_OUTPUT
           }
+        working-directory: .
 
       - name: Fill in the new image ID in the Amazon ECS task definition ✒
         id: task-def

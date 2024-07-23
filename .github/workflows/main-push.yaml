@@ -1,0 +1,82 @@
+---
+name: main push workflow
+
+on:
+  workflow_call:
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  deployments: read
+  issues: read
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: write  
+
+# cancel any previously-started, yet still active runs of this workflow on the same branch
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Setup
+    permissions: read-all
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-setup.yaml@main
+
+  lint:
+    name: Lint Code Base
+    needs: [setup]
+    permissions:
+      contents: read
+      statuses: write
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-super-linter.yaml@main
+    with:
+      ### For a DevOps-focused repository. Prevents some code-language linters from running
+      ### defaults to false
+      ### temporarily set this to bypass ts lint
+      devops-only: false
+      ### A regex to exclude files from linting
+      ### defaults to empty
+      filter-regex-exclude: "[src|.github]/**"
+
+  secret-scan:
+    name: Secret Scan
+    needs: [setup]
+    permissions: read-all
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
+
+  spellcheck:
+    name: Spellcheck codebase
+    needs: [setup]
+    permissions:
+      contents: write
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
+
+  tag:
+    needs: [setup, lint, secret-scan, spellcheck]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.70.0 # Don't use @master or @v1 unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GT_DEVSECOPS_PAT }}
+          WITH_V: true
+          PRERELEASE: true
