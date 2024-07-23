@@ -87,7 +87,7 @@ plus/                            contains files used solely in NGINX Plus config
 test/                            contains automated tests for validating that the examples work
 Dockerfile.oss                   Dockerfile that configures NGINX OSS to act as a S3 gateway
 Dockerfile.plus                  Dockerfile that builds a NGINX Plus instance that is configured
-                                 equivelently to NGINX OSS - instance is configured to act as a 
+                                 equivalently to NGINX OSS - instance is configured to act as a 
                                  S3 gateway with NGINX Plus additional features enabled
 Dockerfile.buildkit.plus         Dockerfile with the same configuration as Dockerfile.plus, but
                                  with support for hiding secrets using Docker's Buildkit
