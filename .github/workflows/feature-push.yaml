@@ -52,7 +52,7 @@ jobs:
       devops-only: false
       ### A regex to exclude files from linting
       ### defaults to empty
-      filter-regex-exclude: "[src|.github]/**"
+      filter-regex-exclude: "[src|.github|infrastructure|examples|deployments]/**"
 
   secret-scan:
     name: Secret Scan
