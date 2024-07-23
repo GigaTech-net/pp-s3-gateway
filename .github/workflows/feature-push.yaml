@@ -60,14 +60,14 @@ jobs:
     permissions: read-all
     uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
 
-  # spellcheck:
-  #   name: Spellcheck codebase
-  #   needs: [setup]
-  #   permissions:
-  #     contents: write
-  #   uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
-  #   with:
-  #     filesToIgnore: 'package-lock.json,./.vscode,./.github'
+  spellcheck:
+    name: Spellcheck codebase
+    needs: [setup]
+    permissions:
+      contents: write
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
+    with:
+      filesToIgnore: 'package-lock.json,./.vscode,./.github'
 
   dependency-check:
     uses: GigaTech-net/reusable-workflows/.github/workflows/rw-dependency-check.yaml@main
