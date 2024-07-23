@@ -3,7 +3,10 @@
   "reporters": ["html", "markdown"],
   "ignore": [
     "**/.github/**",
+    "**/common/**",
+    "**/test/**",
     "**/pagecontent/**",
-    "**/src/**"
+    "**/src/**",
+    "standalone_ubuntu_oss_install.sh"
   ]
 }

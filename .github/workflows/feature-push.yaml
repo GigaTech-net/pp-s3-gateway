@@ -52,7 +52,7 @@ jobs:
       devops-only: false
       ### A regex to exclude files from linting
       ### defaults to empty
-      filter-regex-exclude: "[src|.github|infrastructure|examples|deployments]/**"
+      filter-regex-exclude: "[src|.github|examples|deployments|common|plus|test]/**"
 
   secret-scan:
     name: Secret Scan
@@ -91,7 +91,7 @@ jobs:
 
       - name: Prepare environment
         run: |
-          # shellcheck disable=SC2002
+          # shellcheck disable=SC2002,SC2129
           {
             cat settings-ci.txt \
             | sed "s/AWS_REGION/region/g" \

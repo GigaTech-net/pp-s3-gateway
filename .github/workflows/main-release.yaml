@@ -99,7 +99,7 @@ jobs:
 
       - name: Prepare environment
         run: |
-          # shellcheck disable=SC2002
+          # shellcheck disable=SC2002,SC2129
           {
             cat settings-ci.txt \
             | sed "s/AWS_REGION/region/g" \
@@ -219,6 +219,7 @@ jobs:
           BRANCH: ${{ needs.setup.outputs.branch}}
           VERSION: ${{ needs.setup.outputs.current-version}}
         run: |
+          # shellcheck disable=SC2129,SC2086
           {
             echo "Pushing image $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG"
             docker push $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG
