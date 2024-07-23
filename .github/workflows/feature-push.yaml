@@ -1,0 +1,181 @@
+---
+name: Feature push workflow
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+      - '!master'
+      - '!test'
+      - '!development'
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  deployments: read
+  issues: read
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: read
+  repository-projects: read
+  security-events: read
+  statuses: write
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_REPOSITORY: s3gw
+  ECS_SERVICE_NAME: s3gw-dev-ecs-svc-name
+
+jobs:
+  setup:
+    name: Setup
+    permissions: read-all
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-setup.yaml@main
+
+  lint:
+    name: Lint Code Base
+    needs: [setup]
+    permissions:
+      contents: read
+      statuses: write
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-super-linter.yaml@main
+    with:
+      ### For a DevOps-focused repository. Prevents some code-language linters from running
+      ### defaults to false
+      ### temporarily set this to bypass ts lint
+      devops-only: false
+      ### A regex to exclude files from linting
+      ### defaults to empty
+      filter-regex-exclude: "[src|.github]/**"
+
+  secret-scan:
+    name: Secret Scan
+    needs: [setup]
+    permissions: read-all
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
+
+  spellcheck:
+    name: Spellcheck codebase
+    needs: [setup]
+    permissions:
+      contents: write
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
+    with:
+      filesToIgnore: 'package-lock.json,./.vscode,./.github'
+
+  dependency-check:
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-dependency-check.yaml@main
+    needs: [setup]
+    permissions: read-all
+    with:
+      retentionDays: 1
+
+  build:
+    name: Build
+    needs: [setup, spellcheck]
+    permissions:
+      contents: read
+      statuses: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare environment
+        run: |
+          # shellcheck disable=SC2002
+          {
+            cat settings-ci.txt \
+            | sed "s/AWS_REGION/region/g" \
+            | sed "s/AWS_EXECUTION_ROLE_ARN/execution_role_arn/g" \
+            | sed "s/AWS_TASK_ROLE_ARN/task_role_arn/g" \
+            | sed "s/AWS_ECS_SERVICE_NAME/ecs_service_name/g" \
+            | sed "s/AWS_TASK_DEFINITION_NAME/task_definition_name/g" \
+            | sed "s/AWS_FAMILY/family/g" \
+            | sed "s/AWS_CONTAINER_NAME/container_name/g" \
+            | sed "s/AWS_ENV/env/g" \
+            | sed "s/IS_PRODUCTION/is_production/g" \
+            | sed "s/S3_REGION/s3_region/g" \
+            | sed "s/S3_SERVER_PORT/s3_server_port/g" \
+            | sed "s/S3_SERVER_PROTO/s3_server_proto/g" \
+            | sed "s/S3_SERVER/s3_server/g" \
+            | sed "s/S3_STYLE/s3_style/g" \
+            | sed "s/DEBUG/debug/g" \
+            | sed "s/AWS_SIGS_VERSION/aws_sigs_version/g" \
+            | sed "s/ALLOW_DIRECTORY_LIST/allow_directory_list/g" \
+            | sed "s/PROVIDE_INDEX_PAGE/provide_index_page/g" \
+            | sed "s/APPEND_SLASH_FOR_POSSIBLE_DIRECTORY/append_slash_for_possible_directory/g" \
+            | sed "s/DIRECTORY_LISTING_PATH_PREFIX/directory_listing_path_prefix/g" \
+            | sed "s/CORS_ENABLED/cors_enabled/g" \
+            > infrastructure/var.tfvars
+
+            printf "\n" >> infrastructure/var.tfvars
+            printf "s3_bucket_name=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
+            printf "aws_access_key_id=\"%s\"\n" "${{secrets.NGINX_S3_ACCESS_KEY}}" >> infrastructure/var.tfvars
+            printf "aws_secret_access_key=\"%s\"\n" "${{secrets.NGINX_S3_SECRET_KEY}}" >> infrastructure/var.tfvars
+          }
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.6
+          terraform_wrapper: false # Necessary to access output
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ./infrastructure
+
+      - name: Generate ECS Task Definition
+        id: apply-partial
+        run: terraform apply -auto-approve -target=template_dir.task_definition -var-file "var.tfvars"
+        working-directory: ./infrastructure
+
+      - name: build docker image
+        id: build-image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # shellcheck disable=SC2086
+          {
+            GA=${{ github.actor }}
+
+            if [ "$GA" == "dependabot[bot]" ]; then
+              ECR_REGISTRY="BOT-ACCOUNT.dkr.ecr.BOT-REGION.amazonaws.com"
+            else
+              ECR_REGISTRY="${{ secrets.RANDD_AWS_ACCOUNT }}.dkr.ecr.${{ secrets.RANDD_ECR_REGION }}.amazonaws.com"
+            fi 
+            docker build -t "$ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}":"$IMAGE_TAG" .
+            {
+              echo "image=$ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG";
+              echo "IMAGE_TAG=$IMAGE_TAG";
+              echo "ECR_REGISTRY=$ECR_REGISTRY";
+            } >> $GITHUB_OUTPUT
+          }
+
+      - name: Fill in the new image ID in the Amazon ECS task definition ✒
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ./infrastructure/rendered/task-definition.json
+          container-name: ${{ env.ECS_SERVICE_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Debug files
+        run: |
+          # shellcheck disable=SC2002
+          {
+            echo "================task-definition.json================"
+            cat ./infrastructure/var.tfvars
+            echo ""
+            echo "================task-definition.json================"
+            cat ./infrastructure/rendered/task-definition.json
+          }

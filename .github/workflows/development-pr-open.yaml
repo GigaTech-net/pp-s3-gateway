@@ -1,0 +1,137 @@
+---
+name: Development PR open workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - development
+
+env:
+  NEEDS_REVIEW_LABEL: "needs-human-review"
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  deployments: read
+  issues: read
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: write  
+
+# cancel any previously-started, yet still active runs of this workflow on the same branch
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  validate-pr-title:
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-validate-pr-title.yaml@main
+    with:
+      ticket_key_regex: '([Pp][Rr][Oo])-\d{1,5}'
+
+  setup:
+    name: Setup
+    needs: validate-pr-title
+    permissions: read-all
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-setup.yaml@main
+
+  checkout:
+    runs-on: ubuntu-latest
+    needs: validate-pr-title
+    outputs:
+      NEEDS_REVIEW_LABEL: ${{ env.NEEDS_REVIEW_LABEL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+  lint:
+    name: Lint Code Base
+    needs: [setup, checkout]
+    permissions:
+      contents: read
+      statuses: write
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-super-linter.yaml@main
+    with:
+      ### For a DevOps-focused repository. Prevents some code-language linters from running
+      ### defaults to false
+      ### temporarily set this to bypass ts lint
+      devops-only: false
+      ### A regex to exclude files from linting
+      ### defaults to empty
+      filter-regex-exclude: "[src|.github]/**"
+
+  secret-scan:
+    name: Secret Scan
+    needs: [setup, checkout]
+    permissions: read-all
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
+
+  spellcheck:
+    name: Spellcheck codebase
+    needs: [setup, checkout]
+    permissions:
+      contents: write
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
+
+  complexity:
+    name: Check Complexity
+    needs: [setup, checkout]
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-complexity.yaml@main
+    with:
+      needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
+      tgtBranch: 'origin/development'
+    secrets: inherit
+
+  human-review:
+    name: Check if human review is needed
+    needs: [checkout, complexity]
+    permissions: read-all
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-checkreview.yaml@main
+    with:
+      needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
+    secrets: inherit
+
+  enable-auto-merge:
+    name: Enable Auto Merge
+    needs: [validate-pr-title]
+    runs-on: ubuntu-latest
+    steps:
+      - name: set to auto merge if human review is not needed (not dependabot)
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
+        run: |
+          {
+            gh pr merge --auto --merge "$PR_URL"
+          }
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GT_DEVSECOPS_PAT }}
+
+      - name: set to auto merge if human review is not needed (dependabot)
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        run: |
+          {
+            gh pr merge --auto --merge "$PR_URL"
+          }
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  auto-approve:
+    name: Auto approve PR
+    needs: [human-review, enable-auto-merge, lint, secret-scan, spellcheck]
+    runs-on: ubuntu-latest
+    if: needs.human-review.outputs.human_review_needed == 'false'
+    steps:  
+      - name: Approve the PR if human review not needed
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
