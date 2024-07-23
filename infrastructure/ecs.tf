@@ -33,7 +33,7 @@ resource "template_dir" "task_definition" {
   }
 }
 
-# Need to look at adding the healthcheck back in to the task definition json. I took it out becuase the containers were failing healthchecks for no apparent reason.
+# Need to look at adding the healthcheck back in to the task definition json. I took it out because the containers were failing healthchecks for no apparent reason.
 # "healthCheck": {
 #   "retries": 3,
 #   "command": ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"],
