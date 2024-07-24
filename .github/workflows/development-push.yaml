@@ -27,7 +27,7 @@ concurrency:
 
 env:
   IMAGE_REPOSITORY: s3gw
-  ECS_SERVICE_NAME: s3gw-dev-ecs-svc-name
+  ECS_SERVICE_NAME: s3gw-prod-ecs-svc-name
   ECS_CLUSTER_NAME: prometheus-cluster-prod
 
 jobs:
