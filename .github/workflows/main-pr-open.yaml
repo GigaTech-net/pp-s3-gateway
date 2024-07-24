@@ -80,6 +80,7 @@ jobs:
     uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-complexity.yaml@master
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
+      tgtBranch: 'origin/master'
     secrets: inherit
 
   human-review:
