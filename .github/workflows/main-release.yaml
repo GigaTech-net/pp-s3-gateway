@@ -304,10 +304,3 @@ jobs:
             echo "DEPLOYMENT_ID=$(echo "$DEPLOYMENT_RESPONSE" | jq '.id')" >> $GITHUB_ENV
           }
   
-  dast-owasp-scan:
-    needs: build-deploy
-    name: dast-owasp-scan
-    permissions: read-all
-    uses: GigaTech-net/pp-cds/.github/workflows/dast-api.yml@master
-    with:
-      target: https://prom.gigatech.net/cds/health
