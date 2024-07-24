@@ -33,7 +33,7 @@ jobs:
   setup:
     name: Setup
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-setup.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-setup.yaml@main
 
   checkout:
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-super-linter.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-super-linter.yaml@main
     with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
@@ -65,19 +65,19 @@ jobs:
     name: Secret Scan
     needs: [setup, checkout]
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-secret-scan.yaml@main
 
   spellcheck:
     name: Spellcheck codebase
     needs: [setup, checkout]
     permissions:
       contents: write
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-spellcheck.yaml@main
 
   complexity:
     name: Check Complexity
     needs: [setup, checkout]
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-complexity.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-complexity.yaml@main
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
     secrets: inherit
@@ -86,7 +86,7 @@ jobs:
     name: Check if human review is needed
     needs: [checkout, complexity]
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-checkreview.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-checkreview.yaml@main
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
     secrets: inherit
