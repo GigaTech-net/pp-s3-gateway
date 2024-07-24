@@ -1,3 +1,23 @@
+terraform {
+  required_version = "~> 1.4.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.56.0"
+    }
+    template = {
+      source  = "hashicorp/template"
+      version = "~> 2.2"
+    }
+  }
+}
+provider "aws" {
+  default_tags {
+    tags = {
+      CreatedBy = "terraform"
+    }
+  }
+}
 resource "template_dir" "task_definition" {
   source_dir      = "${path.module}/templates"
   destination_dir = "${path.module}/rendered"
@@ -33,7 +53,7 @@ resource "template_dir" "task_definition" {
   }
 }
 
-# Need to look at adding the healthcheck back in to the task definition json. I took it out becuase the containers were failing healthchecks for no apparent reason.
+# Need to look at adding the healthcheck back in to the task definition json. I took it out because the containers were failing healthchecks for no apparent reason.
 # "healthCheck": {
 #   "retries": 3,
 #   "command": ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"],

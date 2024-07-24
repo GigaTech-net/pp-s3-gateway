@@ -1,0 +1,169 @@
+---
+name: PR Complexity Check
+
+on:    
+  workflow_call:
+    inputs:
+      directoriesToCheck:
+        required: false
+        type: string
+        description: 'pipe delimited top level directories to check for complexity'
+        default: 'src|input'
+      linesThreshold:
+        required: false
+        type: number
+        description: 'the number of lines that have changed to be considered complex'
+        default: 200
+      filesThreshold:
+        required: false
+        type: number
+        description: 'the number of files that have changed to be considered complex'
+        default: 5
+      reviewTeam:
+        required: false
+        type: string
+        description: 'the team in the GigaTECH-net github repo to use for code reviews'
+        default: 'GT-dev-randd'
+      needsReviewLabel:
+        required: false
+        type: string
+        description: 'the label to signify that a manual review is required'
+        default: 'needs-human-review'
+      tgtBranch:
+        required: false
+        type: string
+        description: 'the target branch to check complexity against (ie target of a PR)'
+        default: 'origin/main'
+    outputs:
+      changed_files:
+        description: "the files that were changed"
+        value: ${{ jobs.check_complexity.outputs.changed_files }}
+      changed_lines:
+        description: "the number of lines that were changed"
+        value: ${{ jobs.check_complexity.outputs.changed_lines }}
+      complex:
+        description: "boolean indicating complexity, true = complex, false = not complex"
+        value: ${{ jobs.check_complexity.outputs.complex }}
+      team_members:
+        description: "the team members to request a review from"
+        value: ${{ jobs.check_complexity.outputs.team_members }} 
+
+permissions:
+  contents: write
+
+jobs:
+  check_complexity:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_files: ${{ steps.files.outputs.changed_files }}
+      changed_lines: ${{ steps.lines.outputs.changed_lines }}
+      complex: ${{ steps.complexity.outputs.complex }}
+      team_members: ${{ steps.team_members.outputs.team_members }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Get changed files
+        id: files
+        run: |
+          # shellcheck disable=SC2086
+          {
+            CHANGED_FILES=$(git diff-index --name-only ${{ inputs.tgtBranch }})
+            {
+              echo 'changed_files<<EOF'
+              echo $CHANGED_FILES
+              echo EOF 
+            } >> $GITHUB_OUTPUT
+          }
+
+      - name: Count changed lines
+        id: lines
+        run: |
+          # shellcheck disable=SC2086
+          {
+            CHANGED_LINES=$(git diff-index --shortstat ${{ inputs.tgtBranch }} | awk '{print $4}')
+            echo "changed_lines=$CHANGED_LINES" >> $GITHUB_OUTPUT
+          }
+
+      - name: Check for complexity
+        id: complexity
+        run: |
+          # shellcheck disable=SC2086
+          {
+            FILES="${{ steps.files.outputs.changed_files }}"
+            LINES="${{ steps.lines.outputs.changed_lines }}"
+            FILES_COMPLEXITY_THRESHOLD=${{ inputs.filesThreshold }}
+            LINES_COMPLEXITY_THRESHOLD=${{ inputs.linesThreshold }}
+            COMPLEX=false
+
+            totalFiles=0
+            for FILE in $FILES; do
+              echo "Checking file: $FILE"
+              if [[ "$FILE" =~ ^(${{ inputs.directoriesToCheck }})/ ]]; then
+                totalFiles=$((totalFiles+1))
+              fi
+            done
+
+            if [ $totalFiles -gt $FILES_COMPLEXITY_THRESHOLD ]; then
+              echo "Complexity: files threshold($FILES_COMPLEXITY_THRESHOLD) exceeded with $totalFiles files."
+              COMPLEX=true
+            elif [ $LINES -gt $LINES_COMPLEXITY_THRESHOLD ]; then
+              echo "Complexity: lines threshold($LINES_COMPLEXITY_THRESHOLD) exceeded with $LINES lines."
+              COMPLEX=true
+            fi
+
+            echo "Complex change ===> $COMPLEX"
+            echo "complex=$COMPLEX" >> $GITHUB_OUTPUT
+          }
+
+      - name: Add label if complex
+        if: steps.complexity.outputs.complex == 'true'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GT_DEVSECOPS_PAT }}
+          labels: ${{ inputs.needsReviewLabel }}
+
+      - name: Get team members
+        if: steps.complexity.outputs.complex == 'true'
+        id: team_members
+        run: |
+          # shellcheck disable=SC2086
+          {
+            PR_AUTHOR="${{ github.actor }}"
+            curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/orgs/${{ github.repository_owner }}/teams/${{ inputs.reviewTeam }}/members
+            TEAM_MEMBERS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/orgs/${{ github.repository_owner }}/teams/${{ inputs.reviewTeam }}/members | jq -r '.[].login')
+            FILTERED_TEAM_MEMBERS=$(echo "$TEAM_MEMBERS" | grep -v "^$PR_AUTHOR" | tr '\n' ' ')
+            {
+              echo 'team_members<<EOF'
+              echo $FILTERED_TEAM_MEMBERS
+              echo EOF
+            } >> $GITHUB_OUTPUT
+          }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GT_DEVSECOPS_PAT }}
+
+      - name: Request reviews
+        if: steps.team_members.outputs.team_members != ''
+        run: |
+          # shellcheck disable=SC2043
+          {
+            for MEMBER in ${{ steps.team_members.outputs.team_members }}; do
+              curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}/requested_reviewers \
+                -d "{\"reviewers\":[\"$MEMBER\"]}"
+            done
+          }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GT_DEVSECOPS_PAT }}
+  

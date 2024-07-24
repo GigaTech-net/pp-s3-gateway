@@ -87,9 +87,9 @@
       ],
       "portMappings": [
         {
-          "hostPort": ${docker_container_port},
+          "hostPort": "${docker_container_port}",
           "protocol": "tcp",
-          "containerPort": ${docker_container_port}
+          "containerPort": "${docker_container_port}"
         }
       ],
       "logConfiguration": {

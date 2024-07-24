@@ -84,10 +84,10 @@ examples/                        contains additional `Dockerfile` examples that 
 jsdoc                            JSDoc configuration files
 oss/                             contains files used solely in NGINX OSS configurations
 plus/                            contains files used solely in NGINX Plus configurations
-test/                            contains automated tests for validang that the examples work
+test/                            contains automated tests for validating that the examples work
 Dockerfile.oss                   Dockerfile that configures NGINX OSS to act as a S3 gateway
 Dockerfile.plus                  Dockerfile that builds a NGINX Plus instance that is configured
-                                 equivelently to NGINX OSS - instance is configured to act as a 
+                                 equivalently to NGINX OSS - instance is configured to act as a 
                                  S3 gateway with NGINX Plus additional features enabled
 Dockerfile.buildkit.plus         Dockerfile with the same configuration as Dockerfile.plus, but
                                  with support for hiding secrets using Docker's Buildkit
@@ -104,8 +104,7 @@ test.sh                          test launcher
 
 ## Development
 
-Refer to the [Development Guide](docs/development.md) for more information about
-extending or testing the gateway.
+Refer to the [Development Guide](docs/development.md) for more information about extending or testing the gateway.
 
 ## License
 

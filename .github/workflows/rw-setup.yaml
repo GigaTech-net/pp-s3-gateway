@@ -1,0 +1,61 @@
+---
+name: Workflow Setup
+
+on:
+  workflow_call:
+    outputs:
+      current-version:
+        description: "The current latest version detected from the git repositories tags, semver format"
+        value: ${{ jobs.setup.outputs.current-version }}
+      current-v-version:
+        description: "The current latest version detected from the git repositories tags, prefixed with a v character, semver format"
+        value: ${{ jobs.setup.outputs.current-v-version }}
+      version:
+        description: "The incremented version number (e.g. the next version), semver format"
+        value: ${{ jobs.setup.outputs.version }}
+      v-version:
+        description: "The incremented version number (e.g. the next version), prefixed with a v character, semver format"
+        value: ${{ jobs.setup.outputs.v-version }}
+      pre-release-label:
+        description: "Pre-release label of the incremented version"
+        value: ${{ jobs.setup.outputs.pre-release-label }}
+      branch:
+        description: "the current GitHub branch"
+        value: ${{ jobs.setup.outputs.branch }}
+        
+permissions: read-all
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      current-version: ${{ steps.determine-semver.outputs.current-version }}
+      current-v-version: ${{ steps.determine-semver.outputs.current-v-version }}
+      version: ${{ steps.determine-semver.outputs.version }}
+      v-version: ${{ steps.determine-semver.outputs.v-version }}
+      pre-release-label: ${{ steps.determine-semver.outputs.pre-release-label }}
+      branch: ${{ steps.extract_branch.outputs.branch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: determine semver
+        id: determine-semver
+        uses: reecetech/version-increment@2024.4.4
+        with:
+          use_api: true
+          increment: minor
+
+      - name: Extract branch name
+        shell: bash
+        run: |
+          # shellcheck disable=SC2086,SC2001
+          {
+            BRANCH=${GITHUB_REF#refs/heads/}
+            echo "branch is $BRANCH"
+            echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          }
+        id: extract_branch

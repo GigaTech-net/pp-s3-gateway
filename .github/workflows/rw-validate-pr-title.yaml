@@ -1,0 +1,49 @@
+---
+  name: Validate PR title
+  
+  on:
+    workflow_call:
+      inputs:
+        ticket_key_regex:
+          description: The regex to use to validate the ticket key in the PR title
+          required: false
+          type: string
+          default: 'PRO-\d{2,5}'
+  
+  permissions:
+    contents: read
+  
+  jobs:
+    validate-pr-title:
+      name: Spell check
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
+
+        - name: Check PR conditions
+          id: check_conditions
+          run: |
+            # shellcheck disable=SC2116,SC2016,SC2086
+            {
+              check_pr_title=true
+              if [[ $PR_TITLE == *"bump"* || "${{ github.event.pull_request.user.login }}" == "dependabot[bot]" ]]; then
+                echo "PR title contains 'bump' or author is dependabot. Skipping validation."
+                check_pr_title=false
+              fi
+              echo "check_pr_title=${check_pr_title}" >> $GITHUB_OUTPUT
+            }
+          env:
+            PR_TITLE: ${{ github.event.pull_request.title }}
+
+  
+        - name: validate-pr-title
+          uses:  ytanikin/PRConventionalCommits@1.2.0
+          if: steps.check_conditions.outputs.check_pr_title == 'true'
+          with:
+            task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert"]'
+            ticket_key_regex: ${{ inputs.ticket_key_regex }}
+            add_label: 'false'
+  
