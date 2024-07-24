@@ -1,0 +1,313 @@
+---
+name: main build tagged-release
+
+on:
+  workflow_call:
+  push:
+    tags:
+      - v*
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  deployments: read
+  issues: read
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: write  
+
+env:
+  IMAGE_REPOSITORY: s3gw
+  ECS_SERVICE_NAME: s3gw-prod-ecs-svc-name
+  ECS_CLUSTER_NAME: prometheus-cluster-prod
+
+jobs:
+  setup:
+    name: Setup
+    permissions: read-all
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-setup.yaml@main
+
+  checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+  lint:
+    name: Lint Code Base
+    needs: [setup, checkout]
+    permissions:
+      contents: read
+      statuses: write
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-super-linter.yaml@main
+    with:
+      ### For a DevOps-focused repository. Prevents some code-language linters from running
+      ### defaults to false
+      ### temporarily set this to bypass ts lint
+      devops-only: false
+      ### A regex to exclude files from linting
+      ### defaults to empty
+      filter-regex-exclude: "[src|.github]/**"
+
+  secret-scan:
+    name: Secret Scan
+    needs: [setup, checkout]
+    permissions: read-all
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-secret-scan.yaml@main
+
+  spellcheck:
+    name: Spellcheck codebase
+    needs: [setup, checkout]
+    permissions:
+      contents: write
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-spellcheck.yaml@main
+        
+  dependency-check:
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-dependency-check.yaml@main
+    needs: [setup]
+    permissions: read-all
+    with:
+      retentionDays: 7
+
+  build-deploy:
+    name: Build and deploy
+    needs: [setup, spellcheck, lint]
+    permissions:
+      contents: read
+      statuses: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Prepare environment
+        run: |
+          # shellcheck disable=SC2002,SC2129
+          {
+            cat settings-ci.txt \
+            | sed "s/AWS_REGION/region/g" \
+            | sed "s/AWS_EXECUTION_ROLE_ARN/execution_role_arn/g" \
+            | sed "s/AWS_TASK_ROLE_ARN/task_role_arn/g" \
+            | sed "s/AWS_ECS_SERVICE_NAME/ecs_service_name/g" \
+            | sed "s/AWS_TASK_DEFINITION_NAME/task_definition_name/g" \
+            | sed "s/AWS_FAMILY/family/g" \
+            | sed "s/AWS_CONTAINER_NAME/container_name/g" \
+            | sed "s/AWS_ENV/env/g" \
+            | sed "s/IS_PRODUCTION/is_production/g" \
+            | sed "s/S3_REGION/s3_region/g" \
+            | sed "s/S3_SERVER_PORT/s3_server_port/g" \
+            | sed "s/S3_SERVER_PROTO/s3_server_proto/g" \
+            | sed "s/S3_SERVER/s3_server/g" \
+            | sed "s/S3_STYLE/s3_style/g" \
+            | sed "s/DEBUG/debug/g" \
+            | sed "s/AWS_SIGS_VERSION/aws_sigs_version/g" \
+            | sed "s/ALLOW_DIRECTORY_LIST/allow_directory_list/g" \
+            | sed "s/PROVIDE_INDEX_PAGE/provide_index_page/g" \
+            | sed "s/APPEND_SLASH_FOR_POSSIBLE_DIRECTORY/append_slash_for_possible_directory/g" \
+            | sed "s/DIRECTORY_LISTING_PATH_PREFIX/directory_listing_path_prefix/g" \
+            | sed "s/CORS_ENABLED/cors_enabled/g" \
+            > infrastructure/var.tfvars
+            printf "\n" >> infrastructure/var.tfvars
+            printf "s3_bucket_name=\"%s\"\n" "${{secrets.S3_BUCKET}}" >> infrastructure/var.tfvars
+            printf "aws_access_key_id=\"%s\"\n" "${{secrets.NGINX_S3_ACCESS_KEY}}" >> infrastructure/var.tfvars
+            printf "aws_secret_access_key=\"%s\"\n" "${{secrets.NGINX_S3_SECRET_KEY}}" >> infrastructure/var.tfvars
+          }
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.6
+          terraform_wrapper: false # Necessary to access output
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ./infrastructure
+
+      - name: Generate ECS Task Definition
+        id: apply-partial
+        run: terraform apply -auto-approve -target=template_dir.task_definition -var-file "var.tfvars"
+        working-directory: ./infrastructure
+
+      - name: build docker image
+        id: build-image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # shellcheck disable=SC2086
+          {
+            GA=${{ github.actor }}
+
+            if [ "$GA" == "dependabot[bot]" ]; then
+              ECR_REGISTRY="BOT-ACCOUNT.dkr.ecr.BOT-REGION.amazonaws.com"
+            else
+              ECR_REGISTRY="${{ secrets.RANDD_AWS_ACCOUNT }}.dkr.ecr.${{ secrets.RANDD_ECR_REGION }}.amazonaws.com"
+            fi
+
+            echo "-----------------------------------------------------------------"
+            echo "Building image $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG"
+            docker build --build-arg ENV=prod --file Dockerfile.oss -t $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG .
+            echo "-----------------------------------------------------------------"
+            {
+              echo "image=$ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG";
+              echo "IMAGE_TAG=$IMAGE_TAG";
+              echo "ECR_REGISTRY=$ECR_REGISTRY";
+            } >> $GITHUB_OUTPUT
+          }
+        working-directory: .
+
+      - name: Fill in the new image ID in the Amazon ECS task definition ✒
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ./infrastructure/rendered/task-definition.json
+          container-name: ${{ env.ECS_SERVICE_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Debug files
+        run: |
+          # shellcheck disable=SC2002
+          {
+            echo "================task-definition.json================"
+            cat ./infrastructure/var.tfvars
+            echo ""
+            echo "================task-definition.json================"
+            cat ./infrastructure/rendered/task-definition.json
+          }
+  
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        if: github.actor != 'dependabot[bot]'
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_IDENTITY_REGION }}
+          role-to-assume: ${{ secrets.AWS_RANDD_CICD_ROLE }}
+          role-external-id: ${{ secrets.AWS_RANDD_CICD_EXTERNAL_ID }}
+          role-duration-seconds: 900
+          role-session-name: "${{ env.IMAGE_REPOSITORY }}-prod-container-update"
+          role-skip-session-tagging: true
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        if: github.actor != 'dependabot[bot]'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push image to Amazon ECR
+        id: push-image
+        if: github.actor != 'dependabot[bot]'
+        env:
+          ECR_REGISTRY: ${{ steps.build-image.outputs.ECR_REGISTRY }}
+          IMAGE_TAG: ${{ steps.build-image.outputs.IMAGE_TAG }}
+          BRANCH: ${{ needs.setup.outputs.branch}}
+          VERSION: ${{ needs.setup.outputs.current-version}}
+        run: |
+          # shellcheck disable=SC2129,SC2086
+          {
+            echo "Pushing image $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG"
+            docker push $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG
+            echo "-----------------------------------------------------------------"
+            echo "Pushing image $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$VERSION"
+            docker tag $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:"$VERSION"
+            docker push $ECR_REGISTRY/${{ env.IMAGE_REPOSITORY }}:"$VERSION"
+          }
+
+      - name: clean up old images
+        id: cleanup-images
+        if: github.actor != 'dependabot[bot]'
+        env:
+          ECR_REGISTRY: ${{ steps.build-image.outputs.ECR_REGISTRY }}
+          IMAGE_TAG: ${{ steps.build-image.outputs.IMAGE_TAG }}
+          BRANCH: ${{ needs.setup.outputs.branch}}
+          VERSION: ${{ needs.setup.outputs.current-version}}
+        run: |
+          # shellcheck disable=SC2002
+          {
+            aws ecr list-images --repository-name "${{ env.IMAGE_REPOSITORY }}" --query 'imageIds[*]' --output json > all_images.json
+            aws ecr batch-get-image --repository-name "${{ env.IMAGE_REPOSITORY }}" --image-ids "$(cat all_images.json)" --query 'images[*].{imageDigest:imageDigest,imagePushedAt:imagePushedAt}' --output json > images_with_dates.json
+            cat images_with_dates.json | jq -r '.[] | select(.imagePushedAt < now - 31536000) | .imageDigest' | head -n -1 > old_images_to_delete.txt
+            if [ -s old_images_to_delete.txt ]; then
+              aws ecr batch-delete-image --repository-name "${{ env.IMAGE_REPOSITORY }}" --image-ids "$(cat old_images_to_delete.txt | jq -R '{"imageDigest": . }' | jq -s .)"
+            else
+              echo "No old images to delete or only one image remains."
+            fi
+          }
+
+      - name: Deploy Amazon ECS task definition 🚀
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        if: github.actor != 'dependabot[bot]'
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true
+
+      - name: Check API health
+        if: github.actor != 'dependabot[bot]'
+        run: |
+          {
+            curl --retry 12 --retry-delay 10 -f -s --retry-all-errors https://prom.gigatech.net/cds/health
+          }
+  
+      - name: Trigger successful deployment event to DORA metrics webhook
+        if: success()
+        run: |
+          # shellcheck disable=SC2086
+          {
+            DEPLOYMENT_RESPONSE=$(curl -X POST \
+              -H "Authorization: token ${{ secrets.DORA_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -d '{
+                "ref": "${{ github.sha }}",
+                "environment": "main",
+                "required_contexts": [],
+                "payload": "{ \"deploymentState\": \"success\" }",
+                "description": "Successful deployment from ${{ github.repository }}"
+              }' \
+              https://api.github.com/repos/${{ github.repository }}/deployments)
+            echo "DEPLOYMENT_ID=$(echo "$DEPLOYMENT_RESPONSE" | jq '.id')" >> $GITHUB_ENV
+          }
+
+      - name: Trigger failed deployment event to DORA metrics webhook
+        if: failure()
+        run: |
+          # shellcheck disable=SC2086
+          {
+            DEPLOYMENT_RESPONSE=$(curl -X POST \
+              -H "Authorization: token ${{ secrets.DORA_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -d '{
+                "ref": "${{ github.sha }}",
+                "environment": "main",
+                "required_contexts": [],
+                "payload": "{ \"deploymentState\": \"failure\" }",
+                "description": "Failed deployment from ${{ github.repository }}"
+              }' \
+              https://api.github.com/repos/${{ github.repository }}/deployments)
+            echo "DEPLOYMENT_ID=$(echo "$DEPLOYMENT_RESPONSE" | jq '.id')" >> $GITHUB_ENV
+          }
+  
+  dast-owasp-scan:
+    needs: build-deploy
+    name: dast-owasp-scan
+    permissions: read-all
+    uses: GigaTech-net/pp-cds/.github/workflows/dast-api.yml@main
+    with:
+      target: https://prom.gigatech.net/cds/health

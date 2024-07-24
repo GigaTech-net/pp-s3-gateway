@@ -1,0 +1,72 @@
+---
+name: Spellcheck
+
+on:
+  workflow_call:
+    inputs:
+      wordsToIgnore:
+        required: false
+        type: string
+        description: 'Comma separated words to ignore spellchecking'
+      filesToIgnore:
+        required: false
+        type: string
+        description: 'Comma separated file names to ignore spellchecking'
+
+permissions:
+  contents: write
+
+jobs:
+  spellcheck:
+    name: Spell check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract branch name
+        id: extract_branch
+        run: |
+          # shellcheck disable=SC2116,SC2016,SC2086
+          {
+            echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
+          }
+
+      - name: Install codespell
+        run: pip install codespell
+
+      - name: Unpack and use codespell autocorrect dictionary
+        run: wget https://raw.githubusercontent.com/codespell-project/codespell/master/codespell_lib/data/dictionary.txt
+
+      - name: Run spellcheck
+        run: |
+          {
+            codespell \
+              -D dictionary.txt \
+              --count \
+              --quiet-level 2 \
+              --skip "./output,./input-cache,./temp,./template,./fsh-generated,./dictionary.txt,.gitignore,./src,.dockerignore,Dockerfile,package.json,package-lock.json,${{ inputs.filesToIgnore }}" \
+              -L ehr,requestor,promis,loinc,recengine,sdvosb,${{ inputs.wordsToIgnore }} \
+              --write-changes
+            rm dictionary.txt
+          }
+
+      - name: Commit changes
+        if: steps.extract_branch.outputs.branch != ''
+        run: |
+          {
+            BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
+            git config --global user.name 'github-actions[bot'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git add -A
+            if git diff-index --quiet HEAD --; then
+              echo "No changes to commit"
+            else
+              git commit -m "fix: automatic spelling correction on branch $BRANCH_NAME"
+              git push origin $BRANCH_NAME
+            fi
+          }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
