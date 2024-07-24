@@ -5,7 +5,7 @@ on:
   workflow_call:
   push:
     branches:
-      - main
+      - master
 
 permissions:
   actions: read
@@ -30,7 +30,7 @@ jobs:
   setup:
     name: Setup
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-setup.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-setup.yaml@master
 
   lint:
     name: Lint Code Base
@@ -38,7 +38,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-super-linter.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-super-linter.yaml@master
     with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
@@ -52,14 +52,14 @@ jobs:
     name: Secret Scan
     needs: [setup]
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-secret-scan.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-secret-scan.yaml@master
 
   spellcheck:
     name: Spellcheck codebase
     needs: [setup]
     permissions:
       contents: write
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-spellcheck.yaml@main
+    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-spellcheck.yaml@master
 
   tag:
     needs: [setup, lint, secret-scan, spellcheck]
