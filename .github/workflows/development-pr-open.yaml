@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   validate-pr-title:
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-validate-pr-title.yaml@main
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-validate-pr-title.yaml@master
     with:
       ticket_key_regex: '([Pp][Rr][Oo])-\d{1,5}'
 
@@ -39,7 +39,7 @@ jobs:
     name: Setup
     needs: validate-pr-title
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-setup.yaml@main
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-setup.yaml@master
 
   checkout:
     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-super-linter.yaml@main
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-super-linter.yaml@master
     with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
@@ -72,19 +72,19 @@ jobs:
     name: Secret Scan
     needs: [setup, checkout]
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-secret-scan.yaml@master
 
   spellcheck:
     name: Spellcheck codebase
     needs: [setup, checkout]
     permissions:
       contents: write
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-spellcheck.yaml@master
 
   complexity:
     name: Check Complexity
     needs: [setup, checkout]
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-complexity.yaml@main
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-complexity.yaml@master
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
       tgtBranch: 'origin/development'
@@ -94,7 +94,7 @@ jobs:
     name: Check if human review is needed
     needs: [checkout, complexity]
     permissions: read-all
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-checkreview.yaml@main
+    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-checkreview.yaml@master
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
     secrets: inherit
