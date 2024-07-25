@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   validate-pr-title:
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-validate-pr-title.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-validate-pr-title.yaml@main
     with:
       ticket_key_regex: '([Pp][Rr][Oo])-\d{1,5}'
 
@@ -39,7 +39,7 @@ jobs:
     name: Setup
     needs: validate-pr-title
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-setup.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-setup.yaml@main
 
   checkout:
     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-super-linter.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-super-linter.yaml@main
     with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
@@ -67,24 +67,25 @@ jobs:
       ### A regex to exclude files from linting
       ### defaults to empty
       filter-regex-exclude: "[src|.github]/**"
+      forkedRepoLIntRestriction: true
 
   secret-scan:
     name: Secret Scan
     needs: [setup, checkout]
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-secret-scan.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
 
   spellcheck:
     name: Spellcheck codebase
     needs: [setup, checkout]
     permissions:
       contents: write
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-spellcheck.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
 
   complexity:
     name: Check Complexity
     needs: [setup, checkout]
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-complexity.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-complexity.yaml@main
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
       tgtBranch: 'origin/development'
@@ -94,7 +95,7 @@ jobs:
     name: Check if human review is needed
     needs: [checkout, complexity]
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-checkreview.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-checkreview.yaml@main
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
     secrets: inherit
