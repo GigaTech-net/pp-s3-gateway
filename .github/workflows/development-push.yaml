@@ -50,6 +50,7 @@ jobs:
       ### A regex to exclude files from linting
       ### defaults to empty
       filter-regex-exclude: "[src|.github]/**"
+      forkedRepoLIntRestriction: true
 
   secret-scan:
     name: Secret Scan

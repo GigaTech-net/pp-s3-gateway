@@ -53,7 +53,8 @@ jobs:
       ### A regex to exclude files from linting
       ### defaults to empty
       filter-regex-exclude: "[docs|src|.github|examples|deployments|common|plus|test]/**"
-
+      forkedRepoLIntRestriction: true
+      
   secret-scan:
     name: Secret Scan
     needs: [setup]
