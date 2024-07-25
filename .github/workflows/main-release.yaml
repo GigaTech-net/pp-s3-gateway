@@ -30,7 +30,7 @@ jobs:
   setup:
     name: Setup
     permissions: read-all
-    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-setup.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-setup.yaml@main
 
   checkout:
     runs-on: ubuntu-latest
@@ -46,7 +46,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-super-linter.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-super-linter.yaml@main
     with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
@@ -60,17 +60,17 @@ jobs:
     name: Secret Scan
     needs: [setup, checkout]
     permissions: read-all
-    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-secret-scan.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-secret-scan.yaml@main
 
   spellcheck:
     name: Spellcheck codebase
     needs: [setup, checkout]
     permissions:
       contents: write
-    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-spellcheck.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-spellcheck.yaml@main
         
   dependency-check:
-    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-dependency-check.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-dependency-check.yaml@main
     needs: [setup]
     permissions: read-all
     with:
