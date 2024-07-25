@@ -33,7 +33,7 @@ jobs:
   setup:
     name: Setup
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-setup.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-setup.yaml@master
 
   checkout:
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-super-linter.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-super-linter.yaml@master
     with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
@@ -65,19 +65,19 @@ jobs:
     name: Secret Scan
     needs: [setup, checkout]
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-secret-scan.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-secret-scan.yaml@master
 
   spellcheck:
     name: Spellcheck codebase
     needs: [setup, checkout]
     permissions:
       contents: write
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-spellcheck.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-spellcheck.yaml@master
 
   complexity:
     name: Check Complexity
     needs: [setup, checkout]
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-complexity.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-complexity.yaml@master
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
       tgtBranch: 'origin/master'
@@ -87,7 +87,7 @@ jobs:
     name: Check if human review is needed
     needs: [checkout, complexity]
     permissions: read-all
-    uses: GigaTech-net/pp-s3-gateway/.github/workflows/rw-checkreview.yaml@master
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-checkreview.yaml@master
     with:
       needsReviewLabel: ${{ needs.checkout.outputs.NEEDS_REVIEW_LABEL }}
     secrets: inherit
