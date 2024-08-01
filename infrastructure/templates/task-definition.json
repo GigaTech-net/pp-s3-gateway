@@ -53,6 +53,10 @@
           "value": "${s3_region}"
         },
         {
+          "name": "S3_SERVICE",
+          "value": "${s3_service}"
+        },
+        {
           "name": "S3_STYLE",
           "value": "${s3_style}"
         },
