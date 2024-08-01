@@ -38,6 +38,7 @@ resource "template_dir" "task_definition" {
     s3_server                           = var.s3_server
     s3_server_port                      = var.s3_server_port
     s3_server_proto                     = var.s3_server_proto
+    s3_service                          = var.s3_service
     s3_style                            = var.s3_style
     debug                               = var.debug
     aws_sigs_version                    = var.aws_sigs_version
