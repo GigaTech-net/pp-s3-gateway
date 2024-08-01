@@ -111,6 +111,7 @@ jobs:
             | sed "s/S3_SERVER_PORT/s3_server_port/g" \
             | sed "s/S3_SERVER_PROTO/s3_server_proto/g" \
             | sed "s/S3_SERVER/s3_server/g" \
+            | sed "s/S3_SERVICE/s3_service/g" \
             | sed "s/S3_STYLE/s3_style/g" \
             | sed "s/DEBUG/debug/g" \
             | sed "s/AWS_SIGS_VERSION/aws_sigs_version/g" \

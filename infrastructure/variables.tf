@@ -115,6 +115,15 @@ variable "s3_server_proto" { # tflint-ignore: all
   }
 }
 
+variable "s3_service" { # tflint-ignore: all
+  description = "s3 for S3 buckets or s3express for S3 Express One Zone"
+  type        = string
+  validation {
+    condition     = length(var.s3_service) > 0
+    error_message = "The s3_service must not be zero length."
+  }
+}
+
 variable "s3_style" { # tflint-ignore: all
   description = "The style for s3"
   type        = string
