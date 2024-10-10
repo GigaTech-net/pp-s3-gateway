@@ -13,7 +13,7 @@ permissions:
 jobs:
   create-pr:
     name: Create PR
-    uses: GigaTech-net/reusable-workflows/.github/workflows/rw-create-pr.yaml@main
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-create-pr.yaml@main
     with:
       base-branch: 'master'
       head-branch: 'development'
