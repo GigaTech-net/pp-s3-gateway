@@ -1,0 +1,20 @@
+---
+name: create pull request on schedule
+
+on:
+  schedule:
+    - cron: '30 18 * * 2'  # Every Tuesday at 2:30 PM EDT / 1:30 PM EST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    name: Create PR
+    uses: GigaTech-net/public-reusable-workflows/.github/workflows/rw-create-pr.yaml@main
+    with:
+      base-branch: 'master'
+      head-branch: 'development'
+    secrets: inherit
