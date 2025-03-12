@@ -1,4 +1,11 @@
 version: 2
+# Allow Dependabot access to private reusable-workflows repo
+registries:
+  github:
+    type: git
+    url: https://github.com
+    username: x-access-token
+    password: ${{ secrets.GT_DEPENDABOT_PAT }}
 updates:
   # Enable version updates for npm
   - package-ecosystem: "npm"
